@@ -46,38 +46,43 @@ Docker is the easiest and fastest way to deploy. Below is a docker-compose.yml f
 ### Docker Compose
 
 ```yaml
-version: "3.8"
 services:
   app:
     image: algertc/alpr-dashboard:latest
     restart: unless-stopped
     ports:
-      - "3000:3000"  # Change the first port to the port you want to expose
+      - "3000:3000" # Change the first port to the port you want to expose
     environment:
       - NODE_ENV=production
-      - ADMIN_PASSWORD=password  # Change this to a secure password
-      - DB_PASSWORD=password  # Change this to match your postgres password
+      - ADMIN_PASSWORD=password # Change this to a secure password
+      - DB_PASSWORD=password # Change this to match your postgres password
       - TZ= America/Los_Angeles # Change this to match your time zone. Time zones can be found here https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     depends_on:
       - db
     volumes:
       - app-auth:/app/auth
       - app-config:/app/config
+      - app-plate_images:/app/storage
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   db:
     image: postgres:13
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password  # Change this to a secure password
+      - POSTGRES_PASSWORD=password # Change this to a secure password
       - TZ= America/Los_Angeles # Change this to match your time zone. Time zones can be found here https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
       - ./migrations.sql:/migrations.sql
 
-    # Make sure you download the migrations.sql file if you are updating your existing database.
-    # Place it in the same directory as your docker-compose.yml and schema.sql files. If you changed the user or database name, you will need to plug those values into the command below.
+    # Make sure you download the migrations.sql file if you are updating your existing database. If you changed the user or database name, you will need to plug that in in the command below.
     command: >
       bash -c "
         docker-entrypoint.sh postgres &
@@ -107,6 +112,12 @@ volumes:
       type: none
       o: bind
       device: ./config
+  app-plate_images:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./storage
 
 ```
 
